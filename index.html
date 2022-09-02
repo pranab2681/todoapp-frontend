@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-sweetalert/1.0.1/sweetalert.min.css" integrity="sha512-hwwdtOTYkQwW2sedIsbuP1h0mWeJe/hFOfsvNKpRB3CkRxq8EW7QMheec1Sgd8prYxGm1OM9OZcGW7/GUud5Fw==" crossorigin="anonymous" referrerpolicy="no-referrer"
+    />
+    <link rel='stylesheet' href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+</head>
+
+<body>
+
+    <!-- Modal for create new todo-->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Add Todo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="#">
+                        <div class="mb-3">
+                            <label for="todoDataInput" class="form-label">Todo</label>
+                            <input type="text" class="form-control" id="todoDataInput" aria-describedby="emailHelp">
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="addTodo();">Add Todo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- update todo modal -->
+    <div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateModalLabel">Update Todo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="#">
+                        <div class="mb-3">
+                            <label for="updateTodoInputBox" class="form-label">Todo</label>
+                            <input type="text" class="form-control" id="updateTodoInputBox" aria-describedby="emailHelp" value="">
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="updateTodo();">Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <header class="p-3 text-bg-dark">
+        <div class="container">
+            <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+                <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none">
+                    <h4>Todo App </h4>
+                </a>
+
+                <ul class="nav col-12 col-lg-auto ms-lg-auto mb-2 justify-content-center mb-md-0">
+                    <li>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal">Add Todo</button></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mt-3">
+        <h4 class="text-center all-todos">All Todos</h4>
+        <table class="table table-striped table-hover table-bordered text-center table-responsive" id="todoTable">
+            <thead>
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">Todo</th>
+                    <th scope="col">Created On</th>
+                    <th scope="col">Modified On</th>
+                    <th scope="col">Update</th>
+                    <th scope="col">Delete</th>
+                </tr>
+            </thead>
+            <tbody id="serverData">
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js" integrity="sha512-AA1Bzp5Q0K1KanKKmvN/4d3IRKVlv9PYgwFPvm32nPO6QS8yH1HO7LbgB1pgiOxPtfeg5zEn2ba64MUcqJx6CA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="./src/js/jquery-3.6.1.js"></script>
+    <script src="./src/js/moment.js"></script>
+    <script>
+        const format = "dddd, MMMM Do YYYY, h:mm:ss a";
+
+        $(document).ready(function() {
+            loadAllTodos();
+        });
+
+        function handleDelete(id) {
+            swal({
+                title: "Do you want to delete?",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+            }).then((willDelete) => {
+                if (willDelete) {
+                    deleteTodo(id);
+                    swal("Todo has been deleted!", {
+                        icon: "success",
+                    });
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 800);
+                }
+            });
+        }
+
+        function loadAllTodos() {
+            $.ajax({
+                url: "https://midnight-crud-todo.herokuapp.com/v1/api/todo",
+                type: "GET",
+                success: function(data) {
+                    const renderOn = document.getElementById("serverData");
+                    const todoTable = document.getElementById("todoTable");
+                    if (data.data.length <= 0) {
+                        $(".all-todos").hide();
+                        todoTable.innerHTML = `<h1 class="text-center text-secondary ms-auto">No todos found!</h1>`;
+                    } else {
+
+                        const jsonArray = data.data;
+                        let row = ''
+                        jsonArray.forEach(todo => {
+                            row += `<tr>
+                            <th scope="row">${todo.id}</th>
+                    <td id="todo_${todo.id}">${todo.todo}</td>
+                    <td>${moment(todo.createdOn).format(format)}</td>
+                    <td>${moment(todo.modifiedOn).format(format)}</td>
+                    <td>
+                        <a href="#" onclick="event.preventDefault(); handleUpdate(${todo.id});" data-bs-toggle="modal" data-bs-target="#updateModal"><i class="fa fa-pencil-square-o" aria-hidden="true" title="Edit Todo"></i></a>
+                        </td>
+                    <td>
+                        <a href="#" onclick="event.preventDefault(); handleDelete(${todo.id});"><i class="fa fa-trash-o" aria-hidden="true" title="Delete Todo"></i></a>
+                        </td>
+                        </tr>`;
+                        });
+                        renderOn.innerHTML = row;
+                    }
+                },
+                error: function(err) {
+                    console.log(err)
+                },
+                complete: function(data) {
+                    //console.log("after complete")
+                }
+            });
+        }
+
+        function addTodo() {
+            const todoData = document.getElementById("todoDataInput").value;
+            $.ajax({
+                url: "https://midnight-crud-todo.herokuapp.com/v1/api/todo/create",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    "message": todoData
+                }),
+                success: function(data) {
+                    if (data.status == 201) {
+                        loadAllTodos();
+                        window.location.href = "/"
+                    } else {
+                        window.location.href = "/"
+                    }
+
+                },
+                error: function(err) {
+                    console.log("error came while creating new todo")
+                    console.log(err)
+                },
+                complete: function(data) {
+                    console.log("after complete")
+                }
+            });
+        }
+
+        function deleteTodo(id) {
+            $.ajax({
+                url: `https://midnight-crud-todo.herokuapp.com/v1/api/todo/delete/${id}`,
+                type: "DELETE",
+                success: function(data) {
+                    console.log(data)
+                },
+                error: function(err) {
+                    console.log("unable to delete ")
+                    console.log(err)
+                },
+                complete: function(data) {
+                    console.log("after complete")
+                }
+            });
+        }
+
+        function handleUpdate(id) {
+            const todoMessage = document.getElementById(`todo_${id}`).innerText;
+            console.log(todoMessage);
+            $(`.modal-body #updateTodoInputBox`).val(todoMessage);
+            localStorage.setItem("todoId", id);
+        }
+
+        function updateTodo() {
+            const messageTodo = document.getElementById("updateTodoInputBox").value;
+            $.ajax({
+                url: "https://midnight-crud-todo.herokuapp.com/v1/api/todo/update",
+                type: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    "id": localStorage.getItem("todoId"),
+                    "message": messageTodo
+                }),
+                success: function(data) {
+                    window.location.href = "/"
+                },
+                error: function(err) {
+                    console.log(err)
+                },
+                complete: function(data) {
+                    console.log("after complete")
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
